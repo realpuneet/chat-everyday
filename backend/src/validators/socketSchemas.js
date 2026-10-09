@@ -26,7 +26,10 @@ export const chatTyping = z.object({ chatId: id, on: z.boolean() }).strict();
 export const chatResume = z.object({ chatId: id.optional(), lastSeq: z.number().int().min(0).default(0) }).strict();
 export const authRefresh = z.object({ token: z.string().min(20).max(2000) }).strict();
 
-export const blockAdd = z.object({ chatId: id }).strict();
+export const blockAdd = z
+  .object({ chatId: id.optional(), roomId: id.optional(), memberId: id.optional() })
+  .strict()
+  .refine((v) => v.chatId || (v.roomId && v.memberId), 'chatId or roomId+memberId required');
 
 export const reportCreate = z
   .object({

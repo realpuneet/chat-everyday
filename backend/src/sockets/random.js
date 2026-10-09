@@ -26,8 +26,9 @@ export function registerRandomHandlers({ on, svc }, socket) {
     await svc.chat.typing(user().id, data);
   });
   on('chat:resume', S.chatResume, async (data) => svc.chat.resume(user(), data));
-  on('block:add', S.blockAdd, async ({ chatId }) => {
-    await svc.chat.blockPartner(user().id, chatId);
+  on('block:add', S.blockAdd, async ({ chatId, roomId, memberId }) => {
+    if (chatId) return svc.chat.blockPartner(user().id, chatId);
+    return svc.chat.blockRoomMember(user().id, roomId, memberId, svc.rooms);
   });
   on('report:create', S.reportCreate, async (data) => svc.reports.create(user(), data));
 }

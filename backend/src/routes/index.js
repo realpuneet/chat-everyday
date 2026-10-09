@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authRoutes } from './auth.js';
+import { roomRoutes } from './rooms.js';
 import { asyncH } from '../middlewares/common.js';
 
 export function buildRoutes(svc, mw, { json }) {
@@ -7,6 +8,7 @@ export function buildRoutes(svc, mw, { json }) {
   // (raw-body routes such as image upload are mounted above this line)
   r.use(json);
   r.use('/auth', authRoutes(svc, mw));
+  r.use('/rooms', roomRoutes(svc, mw));
 
   r.get(
     '/stats/public',

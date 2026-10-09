@@ -103,7 +103,7 @@ export class AuthService {
 
   async updateProfile(userId, patch) {
     const user = await this.getUser(userId);
-    const allowed = ['nickname', 'gender', 'lang', 'interests', 'avatar'];
+    const allowed = ['nickname', 'gender', 'lgbtq', 'lang', 'interests', 'avatar'];
     for (const k of allowed) if (patch[k] !== undefined) user[k] = patch[k];
     if (patch.regenerateIdentity) {
       const g = generateIdentity();

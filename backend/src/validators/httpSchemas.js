@@ -12,6 +12,7 @@ export const profileBody = z
   .object({
     nickname: nickname.optional(),
     gender: gender.optional(),
+    lgbtq: z.boolean().optional(),
     lang: z.string().trim().toLowerCase().max(8).regex(/^[a-z-]*$/).optional(),
     interests: z.array(z.string().trim().toLowerCase().regex(/^[a-z0-9_-]{1,24}$/)).max(10).optional(),
     regenerateIdentity: z.boolean().optional(),

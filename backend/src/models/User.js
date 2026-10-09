@@ -10,6 +10,7 @@ const UserSchema = new Schema(
     avatar: { emoji: String, color: String },
     // SELF-DECLARED and unverified. Never present it to other users as verified.
     gender: { type: String, enum: ['male', 'female', 'nonbinary', 'undisclosed'], default: 'undisclosed' },
+    lgbtq: { type: Boolean, default: false }, // self-declared, unverified; gates the LGBTQ+ room only
     lang: { type: String, default: '', maxlength: 8 },
     interests: { type: [String], default: [] },
 
@@ -52,6 +53,7 @@ UserSchema.methods.toPublicSelf = function toPublicSelf() {
     nickname: this.nickname,
     avatar: this.avatar,
     gender: this.gender,
+    lgbtq: this.lgbtq,
     lang: this.lang,
     interests: this.interests,
     ageLevel: this.ageLevel,

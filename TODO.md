@@ -26,7 +26,14 @@ Updated at the end of every phase. See README "Verification status" for what was
 - [x] Rotating httpOnly refresh cookie with reuse detection; per-tab cookie slots (multi account / multi tab safe)
 - [x] Multi-device presence (`user:{id}:sockets`), stale-socket sweeper, mirrored messages to sender's other devices
 - Known gaps: no email verification / password reset flow (documented in security.md); ADMIN_EMAILS only honoured for Google-verified emails or the seed script.
-## P3 – group rooms  ⏳
+## P3 – group rooms  ✅
+- [x] System rooms seeded (Men/Women/LGBTQ+/Everyone identity rooms, 10 interest rooms, adult lounge); custom public/private rooms with invite codes
+- [x] Per-room alias+avatar (HMAC-derived, stable per room, unlinkable across rooms); memberId is opaque, userIds never leave the server
+- [x] Identity gating from SELF-DECLARED profile only; copy says "self-declared, not verified" everywhere
+- [x] Roles owner/moderator/member; kick, mute, slow-mode, rules, promote/demote; all audited
+- [x] Adult flag with age-level gating + optional strict-verification hook (settings); room filters (links/PII/bad-words)
+- [x] Fanout batching, slow-mode, reconnect resume, offline grace before leaving rooms
+- Known gaps: room-level permanent bans (only 10-min kick lockout + admin global bans); per-recipient server-side mute (clients hide blocked memberIds).
 ## P4 – safety + admin  ⏳
 ## P5 – images  ⏳
 ## P6 – video + PWA polish  ⏳

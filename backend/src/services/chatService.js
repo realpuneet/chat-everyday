@@ -209,6 +209,16 @@ export class ChatService {
     await this.matching.addBlock(userId, targetId);
   }
 
+  /** Block someone seen in a room (by opaque memberId). Effects: never matched in random chat; hidden client-side in rooms. */
+  async blockRoomMember(userId, roomId, memberId, rooms) {
+    if (!(await rooms.isMember(roomId, userId))) throw forbidden('Join the room first');
+    const target = await rooms.resolveMember(roomId, memberId);
+    if (!target) throw badRequest('Member not found');
+    await this.block(userId, target);
+    await User.updateOne({ _id: userId }, { $addToSet: { blocked: target } });
+    return { blocked: true, memberId };
+  }
+
   /** Block the partner of a chat the caller took part in, then end the chat. */
   async blockPartner(userId, chatId) {
     if (!(await this.matching.isParticipant(chatId, userId))) throw forbidden('You are not part of this chat');

@@ -9,6 +9,7 @@ import { PresenceService } from './presenceService.js';
 import { EventStore } from './eventStore.js';
 import { ModerationService } from './moderationService.js';
 import { ChatService } from './chatService.js';
+import { RoomService, RoomFanout } from './roomService.js';
 import { RateLimiter } from '../utils/rateLimit.js';
 import { createLazyEmitter } from '../sockets/emitter.js';
 import { createIpRiskProvider } from '../integrations/risk/index.js';
@@ -38,11 +39,21 @@ export function createServices({ redis, cfg = config }) {
   auth.setAdminEmails(cfg.ADMIN_EMAILS);
   const chat = new ChatService({ redis, settings, matching, events, limiter, moderation, emit, presence });
 
-  const svc = { redis, cfg, emit, settings, audit, limiter, tokens, bans, risk, otp, matching, presence, events, moderation, auth, chat };
+  const fanout = new RoomFanout({ emit, settings });
+  const rooms = new RoomService({ redis, settings, events, limiter, moderation, emit, audit, fanout });
 
-  // Ban => leave random chat. (Rooms subscribe in P3.)
+  const svc = { rooms, fanout, redis, cfg, emit, settings, audit, limiter, tokens, bans, risk, otp, matching, presence, events, moderation, auth, chat };
+
+  // Ban => leave random chat and every room.
   moderation.on('user:banned', ({ userId }) => {
     chat.leave(userId, { reason: 'partner_left' }).catch(() => {});
+    rooms.removeEverywhere(userId).catch(() => {});
   });
+
+  svc.afterBoot = async () => {
+    await rooms.ensureSystemRooms();
+  };
+  svc.stop = async () => fanout.flushAll();
+  svc.sweeperTasks = [{ name: 'room-disconnects', ms: 2000, fn: () => rooms.processDisconnects(presence) }];
   return svc;
 }

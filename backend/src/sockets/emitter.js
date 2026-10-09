@@ -16,6 +16,8 @@ export function makeEmitter(target, { canDisconnect = true } = {}) {
     toRoom: (roomId, event, payload) => target.to(rooms.room(roomId)).emit(event, payload),
     toAdmins: (event, payload) => target.to(rooms.admin).emit(event, payload),
     broadcast: (event, payload) => target.emit(event, payload),
+    joinUserSockets: (userId, roomId) => target.in(rooms.user(userId)).socketsJoin(rooms.room(roomId)),
+    leaveUserSockets: (userId, roomId) => target.in(rooms.user(userId)).socketsLeave(rooms.room(roomId)),
     disconnectUser: canDisconnect ? (userId) => target.in(rooms.user(userId)).disconnectSockets(true) : undefined,
     raw: target,
   };
@@ -39,6 +41,8 @@ export function createLazyEmitter() {
     toRoom: call('toRoom'),
     toAdmins: call('toAdmins'),
     broadcast: call('broadcast'),
+    joinUserSockets: call('joinUserSockets'),
+    leaveUserSockets: call('leaveUserSockets'),
     disconnectUser: call('disconnectUser'),
     get raw() {
       return real?.raw;
