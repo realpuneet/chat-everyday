@@ -102,8 +102,10 @@ describe('validators', () => {
     expect(H.emailSignupBody.safeParse({ ...base, email: 'nope' }).success).toBe(false);
   });
   it('phone must be E.164', () => {
-    expect(H.phoneRequestBody.safeParse({ phone: '+919876543210' }).success).toBe(true);
-    expect(H.phoneRequestBody.safeParse({ phone: '9876543210' }).success).toBe(false);
+    const age = { dob: '2000-01-01', ageConfirmed: true };
+    expect(H.phoneRequestBody.safeParse({ ...age, phone: '+919876543210' }).success).toBe(true);
+    expect(H.phoneRequestBody.safeParse({ ...age, phone: '9876543210' }).success).toBe(false);
+    expect(H.phoneRequestBody.safeParse({ phone: '+919876543210' }).success).toBe(false); // age gate is mandatory
   });
 });
 

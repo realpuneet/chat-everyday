@@ -19,7 +19,13 @@ Updated at the end of every phase. See README "Verification status" for what was
 - [x] Unit tests (59) + integration tests (matching incl. 1000-concurrent race, socket flow)
 - Known gaps: none blocking.
 
-## P2 – auth + multi-device  ⏳
+## P2 – auth + multi-device  ✅
+- [x] Guest (signed short-lived token, capped session), email+password (argon2id), Google (server-verified ID token), phone OTP (console/Twilio/MSG91/Firebase adapters)
+- [x] OTP abuse controls: country allow-list, resend cooldown, per-phone/IP/device caps, distinct-numbers-per-IP, global circuit breaker, attempt limits
+- [x] Guest -> registered upgrade in place (same userId; live chat survives; socket `auth:refresh`)
+- [x] Rotating httpOnly refresh cookie with reuse detection; per-tab cookie slots (multi account / multi tab safe)
+- [x] Multi-device presence (`user:{id}:sockets`), stale-socket sweeper, mirrored messages to sender's other devices
+- Known gaps: no email verification / password reset flow (documented in security.md); ADMIN_EMAILS only honoured for Google-verified emails or the seed script.
 ## P3 – group rooms  ⏳
 ## P4 – safety + admin  ⏳
 ## P5 – images  ⏳

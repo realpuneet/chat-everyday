@@ -141,7 +141,13 @@ async function onConnection(io, socket, svc) {
     const claims = svc.tokens.verifyAccess(token);
     if (claims.userId !== userId) throw unauthorized('Token belongs to another account');
     socket.data.exp = claims.exp;
+    // A guest -> registered upgrade keeps the same userId; reflect the new kind without reconnecting.
+    socket.data.user.kind = claims.kind;
+    socket.data.user.role = claims.role;
+    const fresh = await User.findById(userId).select('ageLevel gender nickname').lean();
+    if (fresh) Object.assign(socket.data.user, { ageLevel: fresh.ageLevel, gender: fresh.gender, nickname: fresh.nickname });
     armExpiry();
+    return { kind: claims.kind };
   });
   ctx.on('presence:ping', null, async () => {
     await svc.presence.heartbeat(socket.id);

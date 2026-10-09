@@ -31,15 +31,13 @@ export const emailLoginBody = z
   .object({ email: z.string().trim().toLowerCase().email().max(254), password: z.string().min(1).max(128), totp: z.string().regex(/^\d{6}$/).optional() })
   .strict();
 
-export const googleBody = z
-  .object({ idToken: z.string().min(10).max(4096), dob: dob.optional(), ageConfirmed: z.boolean().optional() })
-  .strict();
+export const googleBody = ageGate.extend({ idToken: z.string().min(10).max(4096) }).strict();
 
 const phone = z.string().trim().regex(/^\+[1-9]\d{7,14}$/, 'Use international format, e.g. +919876543210');
-export const phoneRequestBody = z.object({ phone, dob: dob.optional(), ageConfirmed: z.boolean().optional() }).strict();
-export const phoneVerifyBody = z
-  .object({ phone, code: z.string().regex(/^\d{6}$/).optional(), idToken: z.string().max(4096).optional(), dob: dob.optional(), ageConfirmed: z.boolean().optional() })
+export const phoneRequestBody = ageGate.extend({ phone }).strict();
+export const phoneVerifyBody = ageGate
+  .extend({ phone: phone.optional(), code: z.string().regex(/^\d{6}$/).optional(), idToken: z.string().max(4096).optional() })
   .strict()
-  .refine((v) => v.code || v.idToken, 'code required');
+  .refine((v) => (v.code && v.phone) || v.idToken, 'code and phone (or idToken) required');
 
 export const idParam = z.object({ id: z.string().min(1).max(64) });
