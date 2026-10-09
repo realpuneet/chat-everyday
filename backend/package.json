@@ -15,7 +15,9 @@
     "test:integration": "vitest run tests/integration",
     "lint": "eslint src tests",
     "check": "node scripts/static-check.mjs",
-    "seed:admin": "node scripts/seed-admin.mjs"
+    "seed:admin": "node scripts/seed-admin.mjs",
+    "gen:openapi": "node scripts/gen-openapi.mjs",
+    "loadtest": "node scripts/loadtest.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1148.0",

@@ -15,6 +15,7 @@ import { SavedChatService } from './savedChatService.js';
 import { AdminService } from './adminService.js';
 import { createAgeVerifier } from '../integrations/ageVerify/index.js';
 import { ImageService } from './imageService.js';
+import { RtcService } from './rtcService.js';
 import { createStorage } from '../integrations/storage/index.js';
 import { createNsfwClassifier, createHashMatcher } from '../integrations/moderation/index.js';
 import { createImageQueue } from '../jobs/imageWorker.js';
@@ -54,7 +55,11 @@ export function createServices({ redis, cfg = config }) {
   moderation.reports = reports;
   const saved = new SavedChatService({ redis, settings, matching, emit, audit });
   chat.hooks.onMessage = (chatId, from, partner, ev) => saved.onMessage(chatId, from, partner, ev);
-  chat.hooks.onChatEnded = (chatId) => saved.onChatEnded(chatId);
+  const rtc = new RtcService({ redis, matching, emit, limiter, tokens, cfg });
+  chat.hooks.onChatEnded = (chatId, users) => {
+    saved.onChatEnded(chatId);
+    rtc.onChatEnded(chatId, users);
+  };
   const storage = createStorage(cfg);
   const images = new ImageService({ redis, settings, limiter, storage, matching, rooms, moderation, reports, audit, emit, hashMatch: createHashMatcher(cfg, redis), nsfw: createNsfwClassifier(cfg) });
   const imageQueue = createImageQueue(cfg.REDIS_URL);
@@ -65,7 +70,7 @@ export function createServices({ redis, cfg = config }) {
   const admin = new AdminService({ redis, settings, audit, matching, presence, bans, rooms, images, emit });
   const ageVerifier = createAgeVerifier(cfg);
 
-  const svc = { images, imageQueue, storage, reports, saved, admin, ageVerifier, rooms, fanout, redis, cfg, emit, settings, audit, limiter, tokens, bans, risk, otp, matching, presence, events, moderation, auth, chat };
+  const svc = { rtc, images, imageQueue, storage, reports, saved, admin, ageVerifier, rooms, fanout, redis, cfg, emit, settings, audit, limiter, tokens, bans, risk, otp, matching, presence, events, moderation, auth, chat };
 
   // Ban => leave random chat and every room.
   moderation.on('user:banned', ({ userId }) => {

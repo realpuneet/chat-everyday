@@ -1,0 +1,19 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "https://chat-everyday-api.onrender.com/api/:path*" },
+    { "source": "/((?!api/|assets/|icons/|sw\\.js|workbox-.*|manifest\\.webmanifest|favicon\\.svg).*)", "destination": "/index.html" }
+  ],
+  "headers": [
+    { "source": "/sw.js", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
+    { "source": "/(.*)", "headers": [
+      { "key": "X-Content-Type-Options", "value": "nosniff" },
+      { "key": "Referrer-Policy", "value": "no-referrer" },
+      { "key": "Permissions-Policy", "value": "camera=(self), microphone=(self), geolocation=()" },
+      { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' https://accounts.google.com; style-src 'self' 'unsafe-inline' https://accounts.google.com; img-src 'self' data: blob: https:; media-src 'self' blob:; connect-src 'self' wss: https:; frame-src https://accounts.google.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'" }
+    ] }
+  ]
+}

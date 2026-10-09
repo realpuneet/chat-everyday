@@ -13,3 +13,5 @@ backend/.data/
 frontend/dev-dist/
 *.zip
 release/
+frontend/e2e/.tmp*
+docs/screenshots/.tmp*

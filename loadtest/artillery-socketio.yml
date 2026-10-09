@@ -1,0 +1,19 @@
+# Artillery scenario template (NOT executed in the authoring environment): npx artillery run loadtest/artillery-socketio.yml
+# Create guests first (e.g. with a processor that POSTs /api/auth/guest) and pass the token as {{ token }}.
+config:
+  target: "http://localhost:4000"
+  phases:
+    - { duration: 60, arrivalRate: 20, rampTo: 100, name: ramp }
+    - { duration: 180, arrivalRate: 100, name: sustain }
+  engines: { socketio-v3: { transports: ["websocket"] } }
+  socketio: { auth: { token: "{{ token }}", deviceId: "artillery-{{ $uuid }}" } }
+scenarios:
+  - name: random chat
+    engine: socketio-v3
+    flow:
+      - emit: { channel: "match:start", data: {}, response: { channel: "match:found", capture: { json: "$.chatId", as: "chatId" } } }
+      - loop:
+          - emit: { channel: "chat:send", data: { chatId: "{{ chatId }}", clientMsgId: "{{ $uuid }}", text: "hi from artillery" } }
+          - think: 1.5
+        count: 40
+      - emit: { channel: "match:leave", data: {} }

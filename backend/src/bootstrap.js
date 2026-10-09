@@ -46,8 +46,11 @@ export async function startServer(opts = {}) {
       stopSweeper();
       io._timers?.forEach(clearInterval);
       io.emit('server:shutdown', { reconnectInMs: 1000 + Math.floor(Math.random() * 4000) });
-      await new Promise((r) => server.close(r)); // stop accepting new connections
-      await new Promise((r) => io.close(r)); // drain + close remaining sockets
+      await new Promise((r) => setTimeout(r, 250)); // let the notice reach clients before sockets close
+      const httpClosed = new Promise((r) => server.close(() => r())); // stop accepting new connections
+      server.closeIdleConnections?.();
+      await new Promise((r) => io.close(() => r())); // drain: disconnect remaining sockets (also closes the http server)
+      await httpClosed;
       await svc.stop?.();
       for (const c of io._adapterClients || []) c.disconnect();
       await redis.quit().catch(() => redis.disconnect());

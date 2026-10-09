@@ -1,0 +1,121 @@
+# Production-like local stack: web (nginx) + api + worker + mongo (replica set) + redis (noeviction) + coturn.
+#   cp .env.example .env && docker compose up --build
+# Optional S3-compatible storage for local testing:  docker compose --profile minio up
+name: chat-everyday
+
+services:
+  mongo:
+    image: mongo:7
+    command: ["--replSet", "rs0", "--bind_ip_all"]
+    restart: unless-stopped
+    volumes: [mongo-data:/data/db]
+    healthcheck:
+      # initiates the single-node replica set on first start, then reports ok
+      test: ["CMD", "mongosh", "--quiet", "--eval", "try { rs.status().ok } catch (e) { rs.initiate({_id:'rs0',members:[{_id:0,host:'mongo:27017'}]}).ok }"]
+      interval: 5s
+      timeout: 10s
+      retries: 20
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    # noeviction: queues, rate limits and refresh tokens must never be evicted; AOF for durability
+    command: ["redis-server", "--maxmemory-policy", "noeviction", "--appendonly", "yes", "--save", "60", "1000"]
+    restart: unless-stopped
+    volumes: [redis-data:/data]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api: &backend
+    build: ./backend
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 25s
+    environment: &backend-env
+      NODE_ENV: production
+      PORT: "4000"
+      TRUST_PROXY: "1"
+      MONGO_URI: mongodb://mongo:27017/chat_everyday?replicaSet=rs0
+      REDIS_URL: redis://redis:6379
+      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:8080}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?set JWT_ACCESS_SECRET}
+      JWT_GUEST_SECRET: ${JWT_GUEST_SECRET:?set JWT_GUEST_SECRET}
+      PEPPER: ${PEPPER:?set PEPPER}
+      URL_SIGNING_SECRET: ${URL_SIGNING_SECRET:?set URL_SIGNING_SECRET}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?set ENCRYPTION_KEY}
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      OTP_PROVIDER: ${OTP_PROVIDER:-console}
+      STORAGE_PROVIDER: ${STORAGE_PROVIDER:-local}
+      LOCAL_STORAGE_DIR: /app/.data/uploads
+      S3_ENDPOINT: ${S3_ENDPOINT:-}
+      S3_BUCKET: ${S3_BUCKET:-}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-}
+      TURN_URLS: ${TURN_URLS:-}
+      TURN_SECRET: ${TURN_SECRET:-}
+      RUN_WORKER_INLINE: "false"      # the dedicated worker service processes images
+    volumes: [uploads:/app/.data]
+    depends_on:
+      mongo: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    ports: ["4000:4000"]
+
+  worker:
+    <<: *backend
+    command: ["node", "src/worker.js"]
+    ports: []
+    healthcheck: { disable: true }
+    environment:
+      <<: *backend-env
+
+  web:
+    build:
+      context: ./frontend
+      args:
+        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
+        VITE_DRYRUN: ${VITE_DRYRUN:-false}
+    restart: unless-stopped
+    depends_on: [api]
+    ports: ["8080:8080"]
+
+  coturn:
+    image: coturn/coturn:4.6
+    restart: unless-stopped
+    command: >
+      -c /etc/coturn/turnserver.conf
+      --static-auth-secret=${TURN_SECRET:-change-me-turn-secret}
+      --realm=${TURN_REALM:-chat.example.com}
+      --log-file=stdout
+    volumes: ["./docker/turnserver.conf:/etc/coturn/turnserver.conf:ro"]
+    ports:
+      - "3478:3478/udp"
+      - "3478:3478/tcp"
+      - "49160-49200:49160-49200/udp"
+
+  # --- optional: local S3-compatible object storage (private bucket) ---
+  minio:
+    profiles: ["minio"]
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment: { MINIO_ROOT_USER: minio, MINIO_ROOT_PASSWORD: minio-secret-change }
+    volumes: [minio-data:/data]
+    ports: ["9000:9000", "9001:9001"]
+  minio-init:
+    profiles: ["minio"]
+    image: minio/mc:latest
+    depends_on: [minio]
+    entrypoint: >
+      /bin/sh -c "sleep 3; mc alias set local http://minio:9000 minio minio-secret-change &&
+      mc mb -p local/chat-private && mc anonymous set none local/chat-private &&
+      mc ilm rule add --expire-days 2 --prefix tmp/ local/chat-private || true"
+
+volumes:
+  mongo-data:
+  redis-data:
+  uploads:
+  minio-data:

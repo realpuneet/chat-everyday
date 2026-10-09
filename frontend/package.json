@@ -1,0 +1,44 @@
+{
+  "name": "chat-everyday-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 4173",
+    "test": "vitest run",
+    "lint": "eslint src",
+    "check": "node scripts/static-check.mjs",
+    "e2e": "node e2e/smoke.mjs"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.104.1",
+    "@tanstack/react-virtual": "^3.14.13",
+    "clsx": "^2.1.1",
+    "gsap": "^3.15.0",
+    "lenis": "^1.3.26",
+    "lucide-react": "^1.54.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.30.6",
+    "socket.io-client": "^4.8.4",
+    "zustand": "^4.5.7"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@vitejs/plugin-react": "^4.7.0",
+    "autoprefixer": "^10.6.1",
+    "eslint": "^9.39.5",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.13.0",
+    "jsdom": "^29.1.1",
+    "playwright-core": "^1.64.0",
+    "postcss": "^8.5.29",
+    "tailwindcss": "^3.4.19",
+    "vite": "^5.4.21",
+    "vite-plugin-pwa": "^2.0.0",
+    "vitest": "^2.1.9"
+  }
+}
