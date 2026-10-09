@@ -17,7 +17,8 @@ onSocketCreated((socket) => {
   const chat = () => useChat.getState();
   const rooms = () => useRooms.getState();
 
-  socket.on('connect', async () => {
+  // `session:ready` (not `connect`) is the signal that the server finished registering this socket.
+  socket.on('session:ready', async () => {
     const c = chat();
     // A fresh page load has no chatId: ask the server whether this user is already in a chat (reload, 2nd device).
     try {

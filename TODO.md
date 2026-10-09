@@ -58,4 +58,23 @@ Updated at the end of every phase. See README "Verification status" for what was
 - [x] PWA (manifest, icons, Workbox app-shell cache; API/socket never cached)
 - [x] Real-browser E2E (Playwright + Chromium) 16/16, frontend unit tests
 - Known gaps: no light theme; video evidence cannot be captured for reports (P2P, by design); admin UI has no user search page (API exists).
-## P7 – docs + CI + zip  ⏳
+## P7 – docs + CI + zip  ✅
+- [x] README (quick start, dry-run table, requirement map, honest *Verification status*, launch checklist)
+- [x] docs: architecture, db, environment (kept in sync by a test), scaling, security, legal (India checklist + disclaimer), openapi.json (generated; test fails if a route is undocumented), android-capacitor (FLAG_SECURE)
+- [x] Dockerfiles (api/worker/web), nginx.conf (CSP, proxy, websocket), docker-compose (Mongo replica set, Redis noeviction, api, worker, web, coturn, optional MinIO), GitHub Actions CI (backend/frontend/e2e/docker/audit)
+- [x] loadtest: runnable Node script (executed) + k6 / Artillery templates (NOT executed)
+- [x] Distribution zip
+
+## Bugs found by the tests/E2E and fixed (kept here as a changelog of lessons)
+- zod 4 `.default()` on a transformed list left a bare string -> CORS allow-list / STUN list were strings (env regression test added)
+- graceful shutdown deadlock: `server.close()` awaited before sockets were closed (SIGTERM integration test added)
+- socket handlers were attached after async setup -> events emitted right after `connect` (page-reload resume) were silently dropped (regression test added; client now resumes on `session:ready`)
+- Zustand state key `typing` collided with an action of the same name after state resets (unit regression test)
+- typing indicator throttle was not reset after sending a message
+
+## Known gaps / next steps
+- Run the whole suite against real MongoDB 7 + build the Docker images in CI (not possible in the authoring sandbox)
+- Wire real providers (Twilio/MSG91 + DLT, S3/R2, NSFW + hash-match + age verification, VPN risk) and test each in staging
+- Email verification + password reset, full account deletion/export (DPDP rights), admin user-search page, room-level permanent bans
+- Light theme, screen-reader audit, real-device PWA/Capacitor testing, WebRTC media testing across NATs
+- k6/Artillery execution on staging, Redis Cluster rehearsal, penetration test

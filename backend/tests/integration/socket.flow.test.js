@@ -142,6 +142,19 @@ describe.skipIf(!HAS_MONGO)('socket random-chat flow', () => {
     expect(q.status).toBe('queued'); // would have matched immediately without the block
   });
 
+  it('events emitted the instant the socket connects (before session:ready) are NOT dropped', async () => {
+    // Regression: a page reload emits chat:resume inside its `connect` handler.
+    const { io: ioc } = await import('socket.io-client');
+    const G = await guest(h);
+    const s = ioc(h.url, { transports: ['websocket'], auth: { token: G.token, deviceId: G.deviceId }, reconnection: false, forceNew: true });
+    h.sockets.push(s);
+    const ack = await new Promise((resolve, reject) => {
+      const t = setTimeout(() => reject(new Error('no ack: event was dropped')), 4000);
+      s.on('connect', () => s.emit('chat:resume', { lastSeq: 0 }, (r) => (clearTimeout(t), resolve(r))));
+    });
+    expect(ack).toMatchObject({ ok: true, state: 'idle' });
+  });
+
   it('live online count reflects connected users', async () => {
     const before = await h.svc.presence.onlineCount();
     const g = await guest(h);

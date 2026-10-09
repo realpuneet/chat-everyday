@@ -100,10 +100,6 @@ async function onConnection(io, socket, svc) {
   socket.join(rooms.user(userId));
   if (user.role === 'admin') socket.join(rooms.admin);
 
-  const { wasOffline } = await svc.presence.addSocket(userId, socket.id, socket.data.deviceId);
-  if (wasOffline) await svc.chat.onUserOnline(userId);
-  await svc.rooms?.onSocketConnected?.(socket, user);
-
   // Expire the connection when the access token lapses unless the client refreshed it.
   let expTimer;
   const armExpiry = () => {
@@ -124,6 +120,7 @@ async function onConnection(io, socket, svc) {
       socket.on(event, async (payload, ack) => {
         const cb = typeof ack === 'function' ? ack : () => {};
         try {
+          await setup; // handlers are attached immediately, but only run once presence is registered
           const data = schema ? schema.parse(payload ?? {}) : {};
           await svc.limiter.assertBucket('sockev', socket.id, { capacity: 60, refillPerSec: 30 }, 'Too many events');
           const result = await handler(data, socket);
@@ -136,6 +133,15 @@ async function onConnection(io, socket, svc) {
       });
     },
   };
+
+  // IMPORTANT: every listener is registered synchronously, before any await. A client may emit the moment
+  // its `connect` event fires (e.g. chat:resume after a reload); anything not yet listened for would be dropped.
+  const setup = (async () => {
+    const { wasOffline } = await svc.presence.addSocket(userId, socket.id, socket.data.deviceId);
+    if (wasOffline) await svc.chat.onUserOnline(userId);
+    await svc.rooms?.onSocketConnected?.(socket, user);
+  })();
+  setup.catch((e) => logger.error({ err: e.message }, 'socket setup failed'));
 
   ctx.on('auth:refresh', S.authRefresh, async ({ token }) => {
     const claims = svc.tokens.verifyAccess(token);
@@ -158,15 +164,10 @@ async function onConnection(io, socket, svc) {
   registerRoomHandlers(ctx, socket);
   registerExtraHandlers(ctx, socket);
 
-  socket.emit('session:ready', {
-    user: { id: userId, nickname: user.nickname, avatar: user.avatar, kind: user.kind, role: user.role },
-    online: await svc.presence.onlineCount(),
-    deviceId: socket.data.deviceId,
-  });
-
   socket.on('disconnect', async () => {
     clearTimeout(expTimer);
     try {
+      await setup.catch(() => {}); // never clean up before registration finished (would leave a ghost socket)
       const remaining = await svc.presence.removeSocket(userId, socket.id);
       if (remaining === 0) {
         await svc.chat.onUserOffline(userId);
@@ -175,5 +176,12 @@ async function onConnection(io, socket, svc) {
     } catch (e) {
       logger.error({ err: e.message }, 'disconnect cleanup failed');
     }
+  });
+
+  await setup;
+  socket.emit('session:ready', {
+    user: { id: userId, nickname: user.nickname, avatar: user.avatar, kind: user.kind, role: user.role },
+    online: await svc.presence.onlineCount(),
+    deviceId: socket.data.deviceId,
   });
 }

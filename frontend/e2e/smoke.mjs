@@ -26,7 +26,7 @@ const step = async (name, fn) => {
   }
 };
 
-const browser = await chromium.launch({ executablePath: EXE, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+const browser = await chromium.launch({ executablePath: fs.existsSync(EXE) ? EXE : undefined, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
 const mk = async (name, viewport = { width: 390, height: 780 }) => {
   const ctx = await browser.newContext({ viewport, deviceScaleFactor: 2, hasTouch: true, isMobile: true, permissions: [] });
   const page = await ctx.newPage();
@@ -199,10 +199,30 @@ await step('settings page + legal pages render with placeholder warning', async 
   await A.page.getByText(/cannot be reliably prevented on the web/).waitFor();
 });
 
-await step('desktop layout (1280px) renders the side rail', async () => {
+await step('PWA: manifest is valid and the service worker registers (API/socket not cached)', async () => {
+  const m = await (await A.page.request.get(BASE + '/manifest.webmanifest')).json();
+  if (m.display !== 'standalone' || !m.icons.some((i) => i.purpose === 'maskable')) throw new Error('manifest incomplete');
+  await A.page.goto(BASE + '/settings');
+  const reg = await A.page.evaluate(async () => {
+    for (let i = 0; i < 20; i++) {
+      const r = await navigator.serviceWorker.getRegistration();
+      if (r?.active) return { scope: r.scope };
+      await new Promise((x) => setTimeout(x, 250));
+    }
+    return null;
+  });
+  if (!reg) throw new Error('service worker did not activate');
+  const swSrc = await (await A.page.request.get(BASE + '/sw.js')).text();
+  if (!/navigateFallbackDenylist|denylist/i.test(swSrc) && !swSrc.includes('/api/')) throw new Error('SW does not exclude /api');
+});
+
+await step('desktop layout (1280px) renders the left rail instead of the bottom bar', async () => {
   const D = await mk('D', { width: 1280, height: 800 });
-  await D.page.goto(BASE + '/');
-  await D.page.fill('#dob', '1990-01-01').catch(() => {});
+  D.ctx.setDefaultTimeout(15_000);
+  await enterAsGuest(D, 'Desk');
+  const box = await D.page.locator('nav[aria-label="Main"]').boundingBox();
+  if (!box || box.x > 5 || box.width > 120 || box.height < 600) throw new Error(`expected a left rail, got ${JSON.stringify(box)}`);
+  await D.page.screenshot({ path: path.join(SHOTS, '11-desktop.png') });
   await D.ctx.close();
 });
 

@@ -5,15 +5,18 @@ import { z } from 'zod';
 const bool = z
   .union([z.boolean(), z.string()])
   .transform((v) => (typeof v === 'boolean' ? v : ['1', 'true', 'yes', 'on'].includes(v.toLowerCase())));
-const list = z
-  .string()
-  .default('')
-  .transform((v) =>
-    v
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean),
-  );
+// NOTE: the default is applied to the raw STRING before the split (zod 4 applies .default() on a transformed
+// schema to the OUTPUT, which would leave a bare string in place of an array).
+const list = (def = '') =>
+  z
+    .string()
+    .default(def)
+    .transform((v) =>
+      v
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean),
+    );
 const blank = z.string().default('');
 
 const schema = z.object({
@@ -22,7 +25,7 @@ const schema = z.object({
   INSTANCE_ID: z.string().default(() => `i-${crypto.randomBytes(3).toString('hex')}`),
   LOG_LEVEL: z.string().default('info'),
   PUBLIC_URL: z.string().default('http://localhost:4000'),
-  CORS_ORIGINS: list.default('http://localhost:5173'),
+  CORS_ORIGINS: list('http://localhost:5173'),
   TRUST_PROXY: z.coerce.number().int().default(0),
 
   MONGO_URI: z.string().default('mongodb://127.0.0.1:27017/chat_everyday'),
@@ -40,11 +43,11 @@ const schema = z.object({
   COOKIE_SECURE: bool.optional(),
   COOKIE_SAMESITE: z.enum(['lax', 'strict', 'none']).default('lax'),
 
-  ADMIN_EMAILS: list,
+  ADMIN_EMAILS: list(),
   GOOGLE_CLIENT_ID: blank,
 
   OTP_PROVIDER: z.enum(['console', 'twilio', 'msg91', 'firebase']).default('console'),
-  OTP_ALLOWED_COUNTRY_CODES: list.default('+91'),
+  OTP_ALLOWED_COUNTRY_CODES: list('+91'),
   TWILIO_ACCOUNT_SID: blank,
   TWILIO_AUTH_TOKEN: blank,
   TWILIO_FROM: blank,
@@ -77,8 +80,8 @@ const schema = z.object({
   IP_RISK_HTTP_URL: blank,
   IP_RISK_HTTP_KEY: blank,
 
-  TURN_URLS: list,
-  STUN_URLS: list.default('stun:stun.l.google.com:19302'),
+  TURN_URLS: list(),
+  STUN_URLS: list('stun:stun.l.google.com:19302'),
   TURN_SECRET: blank,
   TURN_TTL_SEC: z.coerce.number().default(3600),
 
@@ -135,4 +138,5 @@ function load(source = process.env) {
 }
 
 export { load as loadConfig };
+export const ENV_KEYS = Object.keys(schema.shape);
 export const config = load();
