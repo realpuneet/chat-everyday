@@ -50,5 +50,12 @@ Updated at the end of every phase. See README "Verification status" for what was
 - [x] Report keeps ONLY the reported image as evidence; auto-hide after N reports; critical categories hide immediately; admin takedown (+ hash blocklist); expiry sweeper
 - [x] Known-bad / minor-risk image => rejected, not stored, uploader permanently banned, critical report with hashes only
 - Known gaps: S3 / ImageKit adapters verified by presign/signature unit tests only (no live bucket); NSFW + hash-match are hooks (dry-run by default), a real provider must be configured before launch.
-## P6 – video + PWA polish  ⏳
+## P6 – video + PWA polish  ✅ (frontend built here)
+- [x] WebRTC signalling (consent-gated, TURN credentials via coturn `use-auth-secret`), VideoPanel UI
+- [x] React 18 + Vite + Tailwind app: AgeGate, Landing (GSAP + Lenis, reduced-motion aware), Login/Signup (email/Google/phone OTP), Chat, Rooms, Room, Settings, Saved chats, Terms/Privacy/Grievance/Takedown, Admin
+- [x] Virtualized message lists, optimistic send + auto-retry, offline/reconnect banner, `100dvh` layout + safe-area insets, accessible dialogs/aria, dark theme default
+- [x] Secure image viewer (canvas, tap-to-reveal, view-once/timer, watermark, blur on tab hide, no right-click/drag/download)
+- [x] PWA (manifest, icons, Workbox app-shell cache; API/socket never cached)
+- [x] Real-browser E2E (Playwright + Chromium) 16/16, frontend unit tests
+- Known gaps: no light theme; video evidence cannot be captured for reports (P2P, by design); admin UI has no user search page (API exists).
 ## P7 – docs + CI + zip  ⏳
