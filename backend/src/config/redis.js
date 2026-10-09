@@ -63,6 +63,7 @@ export const K = {
   imageExpiry: 'img:expiry',
   imageViewed: (id, u) => `img:${id}:v:${u}`,
   badHashes: 'img:badhashes',
+  imagePending: 'img:pending',
 
   settings: 'settings:cache',
   sweeperLock: 'lock:sweeper',

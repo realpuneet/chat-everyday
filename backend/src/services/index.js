@@ -14,6 +14,10 @@ import { ReportService } from './reportService.js';
 import { SavedChatService } from './savedChatService.js';
 import { AdminService } from './adminService.js';
 import { createAgeVerifier } from '../integrations/ageVerify/index.js';
+import { ImageService } from './imageService.js';
+import { createStorage } from '../integrations/storage/index.js';
+import { createNsfwClassifier, createHashMatcher } from '../integrations/moderation/index.js';
+import { createImageQueue } from '../jobs/imageWorker.js';
 import { RateLimiter } from '../utils/rateLimit.js';
 import { createLazyEmitter } from '../sockets/emitter.js';
 import { createIpRiskProvider } from '../integrations/risk/index.js';
@@ -51,10 +55,17 @@ export function createServices({ redis, cfg = config }) {
   const saved = new SavedChatService({ redis, settings, matching, emit, audit });
   chat.hooks.onMessage = (chatId, from, partner, ev) => saved.onMessage(chatId, from, partner, ev);
   chat.hooks.onChatEnded = (chatId) => saved.onChatEnded(chatId);
-  const admin = new AdminService({ redis, settings, audit, matching, presence, bans, rooms, images: null, emit });
+  const storage = createStorage(cfg);
+  const images = new ImageService({ redis, settings, limiter, storage, matching, rooms, moderation, reports, audit, emit, hashMatch: createHashMatcher(cfg, redis), nsfw: createNsfwClassifier(cfg) });
+  const imageQueue = createImageQueue(cfg.REDIS_URL);
+  images.queue = imageQueue;
+  reports.images = images;
+  chat.images = images;
+  rooms.images = images;
+  const admin = new AdminService({ redis, settings, audit, matching, presence, bans, rooms, images, emit });
   const ageVerifier = createAgeVerifier(cfg);
 
-  const svc = { reports, saved, admin, ageVerifier, rooms, fanout, redis, cfg, emit, settings, audit, limiter, tokens, bans, risk, otp, matching, presence, events, moderation, auth, chat };
+  const svc = { images, imageQueue, storage, reports, saved, admin, ageVerifier, rooms, fanout, redis, cfg, emit, settings, audit, limiter, tokens, bans, risk, otp, matching, presence, events, moderation, auth, chat };
 
   // Ban => leave random chat and every room.
   moderation.on('user:banned', ({ userId }) => {
@@ -65,10 +76,15 @@ export function createServices({ redis, cfg = config }) {
   svc.afterBoot = async () => {
     await rooms.ensureSystemRooms();
   };
-  svc.stop = async () => fanout.flushAll();
+  svc.stop = async () => {
+    fanout.flushAll();
+    await svc.imageWorker?.close();
+    await imageQueue.close();
+  };
   svc.sweeperTasks = [
     { name: 'room-disconnects', ms: 2000, fn: () => rooms.processDisconnects(presence) },
     { name: 'saved-purge', ms: 10 * 60_000, lock: true, fn: () => saved.purgeExpired() },
+    { name: 'image-expiry', ms: 60_000, lock: true, fn: () => images.sweepExpired() },
   ];
   return svc;
 }

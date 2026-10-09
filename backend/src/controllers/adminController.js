@@ -39,6 +39,13 @@ export const adminController = (svc) => ({
   resolveTakedown: async (req, res) => res.json(await svc.admin.resolveTakedown(req.user, req.params.id, req.body)),
   hideRoom: async (req, res) => res.json(await svc.admin.hideRoom(req.user, req.params.id).then(() => ({ ok: true }))),
 
+  evidence: async (req, res) => res.json(await svc.images.evidenceUrl(req.user, `evidence/${req.params.id}/${req.params.imageId}.jpg`)),
+  addHash: async (req, res) => {
+    await svc.images.hashMatch.addKnownBad(req.body);
+    await svc.audit.log({ actorId: String(req.user._id), actorType: 'admin', action: 'hash.blocklist_add', severity: 'warn', meta: { phash: req.body.phash, sha256: req.body.sha256 } });
+    res.json({ ok: true });
+  },
+
   totpSetup: async (req, res) => res.json(await svc.admin.totpSetup(req.user)),
   totpEnable: async (req, res) => res.json(await svc.admin.totpEnable(req.user, req.body.code)),
 });

@@ -8,6 +8,7 @@ import { createServices } from './services/index.js';
 import { createApp } from './app.js';
 import { createSocketServer } from './sockets/index.js';
 import { startSweeper } from './jobs/sweeper.js';
+import { startImageWorker } from './jobs/imageWorker.js';
 
 /**
  * Boot everything. Returns handles so tests (and graceful shutdown) can control the lifecycle.
@@ -26,6 +27,7 @@ export async function startServer(opts = {}) {
   svc.io = io;
 
   await svc.afterBoot?.();
+  if (config.RUN_WORKER_INLINE) svc.imageWorker = startImageWorker(svc.images, { url: opts.redisUrl || config.REDIS_URL });
   await svc.bans.warmCache().catch((e) => logger.warn({ err: e.message }, 'ban cache warm failed'));
   const stopSweeper = opts.sweeper === false || config.DISABLE_SWEEPER ? () => {} : startSweeper(svc, svc.sweeperTasks || []);
 

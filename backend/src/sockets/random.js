@@ -17,10 +17,14 @@ export function registerRandomHandlers({ on, svc }, socket) {
     return { left: res.kind };
   });
   on('chat:send', S.chatSend, async (data) => {
-    if (data.kind === 'image') {
-      await svc.images.assertSendable(user(), data.imageId, { chatId: data.chatId });
+    if (data.kind !== 'image') return svc.chat.send(user(), data, socket.id);
+    await svc.images.assertSendable(user(), data.imageId, { chatId: data.chatId });
+    try {
+      return await svc.chat.send(user(), data, socket.id);
+    } catch (e) {
+      await svc.images.releaseSend(data.imageId);
+      throw e;
     }
-    return svc.chat.send(user(), data, socket.id);
   });
   on('chat:typing', S.chatTyping, async (data) => {
     await svc.chat.typing(user().id, data);

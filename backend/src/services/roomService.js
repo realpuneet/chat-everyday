@@ -356,6 +356,11 @@ export class RoomService {
         if (!ok) throw tooMany('Slow mode is on', Math.max(1, await this.redis.ttl(K.roomSlow(roomId, uid))));
       }
       let body = '';
+      let image;
+      if (kind === 'image') {
+        if (!imageId) throw badRequest('imageId required');
+        image = await this.images.publicMeta(imageId);
+      }
       if (kind === 'text') {
         body = await this.moderation.screenText(user, text, {
           scope: 'room',
@@ -367,7 +372,7 @@ export class RoomService {
       }
       const ident = this.identity(roomId, uid);
       const mid = this.memberId(roomId, uid);
-      const ev = await this.events.append('room', roomId, { from: uid, memberId: mid, alias: ident.alias, avatar: ident.avatar, role, kind, text: body, imageId, clientMsgId });
+      const ev = await this.events.append('room', roomId, { from: uid, memberId: mid, alias: ident.alias, avatar: ident.avatar, role, kind, text: body, imageId, image, clientMsgId });
       await this.fanout.pushMessage(roomId, this.#wire(roomId, ev));
       const ack = { ok: true, seq: ev.seq, ts: ev.ts, text: body };
       await this.events.completeIdempotent(uid, clientMsgId, ack);
@@ -393,6 +398,10 @@ export class RoomService {
   /** Resolve an opaque memberId back to the real user (server side only: reports + moderation). */
   async resolveMember(roomId, memberId) {
     return this.redis.hget(K.roomMembers(roomId), memberId);
+  }
+
+  async isAdultRoom(roomId) {
+    return !!(await this.#cfg(roomId)).adult;
   }
 
   async isCustom(roomId) {

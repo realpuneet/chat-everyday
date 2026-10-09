@@ -190,7 +190,7 @@ export class ReportService {
       });
     } else if (action === 'hide_content') {
       if (r.context?.roomId) await this.rooms.hide(r.context.roomId, 'admin_takedown');
-      for (const img of r.evidence?.images || []) await this.images?.adminTakedown(img.imageId, adminId);
+      for (const img of r.evidence?.images || []) await this.images?.adminTakedown(img.imageId, adminId, { blocklist: ['csam', 'nonconsensual', 'minor'].includes(r.category) });
     } else if (action === 'warn' && r.reportedId) {
       this.emit.toUser(r.reportedId, 'moderation:warning', { category: r.category, message: 'A moderator reviewed a report about you. Please follow the community rules.' });
     }

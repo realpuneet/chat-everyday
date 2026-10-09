@@ -43,6 +43,12 @@ Updated at the end of every phase. See README "Verification status" for what was
 - [x] Opt-in saved chats: both consent, registered only, AES-256-GCM per-message with HKDF per-doc key, per-user copies, delete, retention TTL + sweeper purge
 - [x] Strict age-verification provider hook (dry-run default)
 - Known gaps: ban-evasion risk score has no real VPN provider (hook only); report -> image evidence wiring completes in P5.
-## P5 – images  ⏳
+## P5 – images  ✅
+- [x] `StorageAdapter` (S3-compatible default / ImageKit optional / local dry-run); private bucket; signed GET (30-60s, `no-store`); presigned PUT bound to type+length
+- [x] BullMQ pipeline: validate by magic bytes, EXIF/GPS strip (re-encode), dHash, known-bad hash hook (+ local blocklist), NSFW hook, approved/blurred/rejected; classifier outage retries (never silently approves)
+- [x] Guest 5/h, signed-up 30/h, all in settings; view-once / timer; viewer-specific watermark data from server; owner notified on first view
+- [x] Report keeps ONLY the reported image as evidence; auto-hide after N reports; critical categories hide immediately; admin takedown (+ hash blocklist); expiry sweeper
+- [x] Known-bad / minor-risk image => rejected, not stored, uploader permanently banned, critical report with hashes only
+- Known gaps: S3 / ImageKit adapters verified by presign/signature unit tests only (no live bucket); NSFW + hash-match are hooks (dry-run by default), a real provider must be configured before launch.
 ## P6 – video + PWA polish  ⏳
 ## P7 – docs + CI + zip  ⏳

@@ -40,6 +40,8 @@ export function adminRoutes(svc, mw) {
   r.post('/takedowns/:id/resolve', validate({ params: idParam, body: z.object({ action: z.enum(['actioned', 'rejected']), note: z.string().max(1000).optional() }).strict() }), asyncH(c.resolveTakedown));
   r.post('/rooms/:id/hide', validate({ params: idParam }), asyncH(c.hideRoom));
 
+  r.get('/evidence/:id/:imageId', asyncH(c.evidence));
+  r.post('/hashes', validate({ body: z.object({ sha256: z.string().regex(/^[a-f0-9]{64}$/).optional(), phash: z.string().regex(/^[a-f0-9]{16}$/).optional() }).strict().refine((v) => v.sha256 || v.phash, 'sha256 or phash required') }), asyncH(c.addHash));
   r.post('/2fa/setup', asyncH(c.totpSetup));
   r.post('/2fa/enable', validate({ body: z.object({ code: z.string().regex(/^\d{6}$/) }).strict() }), asyncH(c.totpEnable));
   return r;

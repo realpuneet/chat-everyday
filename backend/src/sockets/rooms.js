@@ -10,8 +10,14 @@ export function registerRoomHandlers({ on, svc }, socket) {
   });
   on('room:resume', S.roomResume, async (data) => svc.rooms.resume(user(), data));
   on('room:send', S.roomSend, async (data) => {
-    if (data.kind === 'image') await svc.images.assertSendable(user(), data.imageId, { roomId: data.roomId });
-    return svc.rooms.send(user(), data);
+    if (data.kind !== 'image') return svc.rooms.send(user(), data);
+    await svc.images.assertSendable(user(), data.imageId, { roomId: data.roomId });
+    try {
+      return await svc.rooms.send(user(), data);
+    } catch (e) {
+      await svc.images.releaseSend(data.imageId);
+      throw e;
+    }
   });
   on('room:typing', S.roomTyping, async (data) => {
     await svc.rooms.typing(user(), data);

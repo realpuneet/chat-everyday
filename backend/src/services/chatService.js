@@ -86,6 +86,7 @@ export class ChatService {
       await this.limiter.assertWindow('msg10', userId, { limit: cfg.limits.msgPer10s, windowMs: 10_000 }, 'You are sending too fast');
 
       let body = '';
+      let image;
       if (kind === 'text') {
         body = await this.moderation.screenText(user, text, {
           scope: 'random',
@@ -94,10 +95,11 @@ export class ChatService {
         });
       } else if (kind === 'image') {
         if (!imageId) throw badRequest('imageId required');
-        body = ''; // validated by imageService before reaching here (see sockets/random.js)
+        body = ''; // eligibility was claimed by images.assertSendable (see sockets/random.js)
+        image = await this.images.publicMeta(imageId);
       }
-      const ev = await this.events.append('chat', active.chatId, { from: userId, kind, text: body, imageId, clientMsgId });
-      const wire = (from) => ({ chatId: active.chatId, seq: ev.seq, ts: ev.ts, from, kind, text: body, imageId, clientMsgId });
+      const ev = await this.events.append('chat', active.chatId, { from: userId, kind, text: body, imageId, image, clientMsgId });
+      const wire = (from) => ({ chatId: active.chatId, seq: ev.seq, ts: ev.ts, from, kind, text: body, imageId, image, clientMsgId });
       this.emit.toUser(active.partnerId, 'chat:msg', wire('them'));
       this.emit.toUserExcept(userId, socketId, 'chat:msg', wire('me'));
       await this.hooks.onMessage?.(active.chatId, userId, active.partnerId, ev);
@@ -143,6 +145,7 @@ export class ChatService {
         kind: e.kind,
         text: e.text,
         imageId: e.imageId,
+        image: e.image,
         clientMsgId: e.clientMsgId,
       })),
     };
