@@ -1,0 +1,15 @@
+node_modules/
+dist/
+build/
+coverage/
+.env
+.env.*
+!.env.example
+.data/
+*.log
+.DS_Store
+.vite/
+backend/.data/
+frontend/dev-dist/
+*.zip
+release/
