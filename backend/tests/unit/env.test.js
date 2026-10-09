@@ -36,6 +36,16 @@ describe('environment config', () => {
     expect(() => loadConfig({ NODE_ENV: 'test', PORT: 'abc' })).toThrow(/Invalid environment/);
   });
 
+  it('DEMO_MODE: dry-run helpers work in production and ENCRYPTION_KEY may be any string', () => {
+    const base = { NODE_ENV: 'production', JWT_ACCESS_SECRET: 'a'.repeat(32), JWT_GUEST_SECRET: 'b'.repeat(32), PEPPER: 'c'.repeat(32), URL_SIGNING_SECRET: 'd'.repeat(32) };
+    expect(loadConfig({ ...base, ENCRYPTION_KEY: Buffer.alloc(32).toString('base64') }).demo).toBe(false);
+    const demo = loadConfig({ ...base, DEMO_MODE: 'true', ENCRYPTION_KEY: 'just-a-passphrase' });
+    expect(demo.demo).toBe(true);
+    expect(demo.ENCRYPTION_KEY_BUF.length).toBe(32);
+    expect(() => loadConfig({ ...base, ENCRYPTION_KEY: 'just-a-passphrase' })).toThrow(/32 bytes/);
+    expect(loadConfig({ NODE_ENV: 'development' }).demo).toBe(true);
+  });
+
   it('dev secrets are deterministic but distinct per purpose', () => {
     const c = loadConfig({ NODE_ENV: 'test' });
     expect(new Set([c.JWT_ACCESS_SECRET, c.JWT_GUEST_SECRET, c.PEPPER, c.URL_SIGNING_SECRET]).size).toBe(4);

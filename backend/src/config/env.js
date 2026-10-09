@@ -85,6 +85,9 @@ const schema = z.object({
   TURN_SECRET: blank,
   TURN_TTL_SEC: z.coerce.number().default(3600),
 
+  // Demo/staging switch: lets the dry-run helpers (OTP code in the response, `dryrun:<email>` Google token,
+  // instant age verification) work on a deployed NODE_ENV=production instance. NEVER enable for real users.
+  DEMO_MODE: bool.default(false),
   RATE_LIMIT_MULTIPLIER: z.coerce.number().default(1), // tests / load tests raise this; never in prod
   RUN_WORKER_INLINE: bool.default(true),
   DISABLE_SWEEPER: bool.default(false),
@@ -118,13 +121,15 @@ function load(source = process.env) {
   };
   if (e.ENCRYPTION_KEY) {
     const buf = Buffer.from(e.ENCRYPTION_KEY, 'base64');
-    if (buf.length !== 32) throw new Error('ENCRYPTION_KEY must be base64 of exactly 32 bytes');
-    cfg.ENCRYPTION_KEY_BUF = buf;
+    if (buf.length === 32) cfg.ENCRYPTION_KEY_BUF = buf;
+    else if (e.DEMO_MODE) cfg.ENCRYPTION_KEY_BUF = crypto.createHash('sha256').update(e.ENCRYPTION_KEY).digest(); // any string works in demo
+    else throw new Error('ENCRYPTION_KEY must be base64 of exactly 32 bytes');
   } else {
-    if (prod) missing.push('ENCRYPTION_KEY');
+    if (prod && !e.DEMO_MODE) missing.push('ENCRYPTION_KEY');
     cfg.ENCRYPTION_KEY_BUF = dev('enc');
   }
   if (missing.length) throw new Error(`Missing required secrets in production: ${missing.join(', ')}`);
+  cfg.demo = e.DEMO_MODE || !prod; // dry-run helpers allowed
   cfg.dryRun = {
     google: !e.GOOGLE_CLIENT_ID,
     otp: e.OTP_PROVIDER === 'console',

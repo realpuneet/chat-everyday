@@ -79,7 +79,7 @@ export class OtpService {
       await this.redis.multi().del(K.otp(ph)).del(K.otpCooldown(ph)).exec();
       throw new AppError(502, 'OTP_SEND_FAILED', 'Could not send the code, try again shortly');
     }
-    return { sent: true, cooldownSec: RESEND_COOLDOWN_SEC, expiresInSec: OTP_TTL_SEC, ...(this.provider.dryRun && !config.isProd ? { devCode: code, dryRun: true } : {}) };
+    return { sent: true, cooldownSec: RESEND_COOLDOWN_SEC, expiresInSec: OTP_TTL_SEC, ...(this.provider.dryRun && config.demo ? { devCode: code, dryRun: true } : {}) };
   }
 
   /** @returns {string} normalised E.164 phone on success */

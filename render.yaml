@@ -1,11 +1,12 @@
-# Render Blueprint: backend API (+ inline image worker) and Redis (Key Value).
+# Render Blueprint for a DEMO / basic deployment (DEMO_MODE=true, free plans, dry-run integrations).
+# Free web services sleep after ~15 min idle (first request wakes them, sockets reconnect). Not for real users.
 # MongoDB is NOT offered by Render: create a free MongoDB Atlas cluster and paste its URI into MONGO_URI.
 services:
   - type: web
     name: chat-everyday-api
     runtime: node
     rootDir: backend
-    plan: starter            # websockets + background sweeper need an always-on instance (free tier sleeps)
+    plan: free
     buildCommand: npm ci --omit=dev
     startCommand: node src/server.js
     healthCheckPath: /readyz
@@ -23,13 +24,14 @@ services:
       - { key: JWT_GUEST_SECRET, generateValue: true }
       - { key: PEPPER, generateValue: true }
       - { key: URL_SIGNING_SECRET, generateValue: true }
-      - { key: ENCRYPTION_KEY, sync: false }          # openssl rand -base64 32
+      - { key: ENCRYPTION_KEY, generateValue: true }  # any string is accepted in DEMO_MODE
+      - { key: DEMO_MODE, value: "true" }              # dry-run OTP code / dryrun Google login / instant age check
       - { key: ADMIN_EMAILS, sync: false }
       - { key: GOOGLE_CLIENT_ID, sync: false }
       - { key: OTP_PROVIDER, value: console }
       - { key: STORAGE_PROVIDER, value: local }       # ephemeral disk: switch to s3/R2 for real use
   - type: keyvalue
     name: chat-everyday-redis
-    plan: starter
+    plan: free
     maxmemoryPolicy: noeviction
     ipAllowList: []          # private network only

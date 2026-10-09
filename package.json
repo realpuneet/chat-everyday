@@ -1,0 +1,13 @@
+{
+  "name": "chat-everyday",
+  "private": true,
+  "scripts": {
+    "setup": "npm --prefix backend ci && npm --prefix frontend ci",
+    "db:up": "docker compose -f docker-compose.dev.yml up -d",
+    "db:down": "docker compose -f docker-compose.dev.yml down",
+    "dev": "node scripts/dev.mjs",
+    "test": "npm --prefix backend test && npm --prefix frontend test",
+    "check": "npm --prefix backend run check && npm --prefix frontend run check",
+    "build": "npm --prefix frontend run build"
+  }
+}

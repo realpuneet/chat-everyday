@@ -12,7 +12,7 @@ export function createGoogleVerifier(cfg = config) {
     dryRun: !client,
     async verify(idToken) {
       if (!client) {
-        if (cfg.isProd) throw unauthorized('Google sign-in is not configured');
+        if (!cfg.demo) throw unauthorized('Google sign-in is not configured');
         const m = /^dryrun:(?:([\w-]+):)?([^\s:@]+@[^\s:@]+)$/.exec(idToken);
         if (!m) throw unauthorized('Invalid Google token (dry-run expects "dryrun:<email>")');
         const email = m[2].toLowerCase();

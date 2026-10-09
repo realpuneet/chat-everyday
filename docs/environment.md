@@ -97,6 +97,7 @@ Generate with `openssl rand -hex 32` (`ENCRYPTION_KEY`: `openssl rand -base64 32
 |---|---|---|
 | `RUN_WORKER_INLINE` | `true` | Run the BullMQ image worker inside the API process. Set `false` and run `npm run start:worker` (compose does this). |
 | `DISABLE_SWEEPER` | `false` | Background maintenance loops (fallback ticks, disconnect grace, stale queues, presence, expiry). Disable only in tests. |
+| `DEMO_MODE` | `false` | Demo/staging switch for a deployed `NODE_ENV=production` instance: the dry-run OTP code is returned in the response, Google accepts `dryrun:<email>`, instant age-verification works, and `ENCRYPTION_KEY` may be any string. **Never enable for real users** (anyone could log in as any email). |
 | `RATE_LIMIT_MULTIPLIER` | `1` | Multiplies per-IP HTTP limits. **Only for load tests / CI.** |
 
 ## Runtime settings (admin dashboard, stored in MongoDB)

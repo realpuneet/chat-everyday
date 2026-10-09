@@ -38,7 +38,7 @@ export function createAgeVerifier(cfg = config) {
     name: 'dryrun',
     dryRun: true,
     async start(userRef) {
-      if (cfg.isProd) throw forbidden('Age verification provider is not configured');
+      if (!cfg.demo) throw forbidden('Age verification provider is not configured');
       return { mode: 'dryrun', sessionId: `dry_${userRef}`, url: null };
     },
     verifyWebhook() {

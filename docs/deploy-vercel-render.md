@@ -1,9 +1,37 @@
-# Deploy: frontend on Vercel, backend on Render
+# Basic (demo) deploy: frontend on Vercel, backend on Render
 
-1. **MongoDB Atlas** (Render has no Mongo): create a cluster, a DB user, allow Render's outbound IPs (or 0.0.0.0/0 for a demo). Copy the `mongodb+srv://…/chat_everyday` URI.
-2. **Render**: New → Blueprint → select this repo (`render.yaml`). Set `MONGO_URI`, `ENCRYPTION_KEY` (`openssl rand -base64 32`), `ADMIN_EMAILS` (optional). After the first deploy note the API URL (e.g. `https://chat-everyday-api.onrender.com`) and set `PUBLIC_URL` to it. Check `GET /readyz`.
-3. **Vercel**: Import the repo, **Root Directory = `frontend`**. Env vars: `VITE_SOCKET_URL=https://<render-api-url>` (WebSockets cannot go through Vercel rewrites), `VITE_DRYRUN=true` while dry-run integrations are on, optional `VITE_GOOGLE_CLIENT_ID`.
-4. Edit the `/api` rewrite destination in `frontend/vercel.json` to your real Render URL (it is a literal; Vercel rewrites cannot read env vars) and redeploy. REST calls stay same-origin, so the refresh cookie remains first-party.
-5. Back on Render set `CORS_ORIGINS=https://<your-app>.vercel.app` (needed for the direct Socket.io connection) and redeploy.
+> This is a **demo/staging** setup (`DEMO_MODE=true`, dry-run integrations, free tiers). It is deliberately not production-grade: anyone can sign in as any email through the dry-run Google login, OTP codes are shown on screen, images live on an ephemeral disk, and free instances sleep. Do not use it for real users.
 
-Notes: local-disk image storage is ephemeral on Render (use S3/R2 for real use); the free Render tier sleeps and would break WebSockets/sweepers; with `TRUST_PROXY=2` the first `X-Forwarded-For` hop is trusted, so for strict IP bans put Cloudflare/your own proxy in front of the API.
+## 1. MongoDB Atlas (Render has no Mongo)
+Create a free cluster → Database Access: add a user → Network Access: allow `0.0.0.0/0` → copy the connection string and put `/chat_everyday` as the database name, e.g. `mongodb+srv://USER:PASS@cluster0.xxxxx.mongodb.net/chat_everyday`.
+
+## 2. Render (backend + Redis)
+New → **Blueprint** → pick this repo (`render.yaml`). When asked, fill:
+| Variable | Value |
+|---|---|
+| `MONGO_URI` | the Atlas string from step 1 |
+| `PUBLIC_URL` | `https://chat-everyday-api.onrender.com` (your service URL) |
+| `CORS_ORIGINS` | your Vercel URL, e.g. `https://chat-everyday.vercel.app` (fill after step 3, then redeploy) |
+| `ADMIN_EMAILS` | optional, e.g. `you@gmail.com` (becomes admin via the dry-run Google login) |
+
+Everything else (secrets, `DEMO_MODE`, Redis URL) is pre-set. Check `https://<service>.onrender.com/readyz` → `{"ready":true}`.
+
+## 3. Vercel (frontend)
+Import the repo → **Root Directory: `frontend`** (framework Vite is auto-detected). Environment variables:
+| Variable | Value |
+|---|---|
+| `VITE_SOCKET_URL` | your Render URL, e.g. `https://chat-everyday-api.onrender.com` (WebSockets cannot pass through Vercel rewrites) |
+| `VITE_DRYRUN` | `true` |
+
+`frontend/vercel.json` already forwards `/api/*` to `https://chat-everyday-api.onrender.com`. **If your Render service got a different URL**, edit that one line and redeploy (Vercel rewrites cannot read env vars). REST stays same-origin so the refresh cookie works.
+
+## 4. Local development (no deploy needed)
+```bash
+npm run setup      # installs backend + frontend
+npm run db:up      # MongoDB + Redis via Docker (or run mongod / redis-server yourself)
+npm run dev        # API :4000 + web http://localhost:5173
+```
+`backend/.env` and `frontend/.env` are already filled for this (dry-run, no accounts needed). Sign in as admin: Google (dry-run) tab → email `admin@example.com`.
+
+## Known limits of the demo deploy
+Free Render sleeps after ~15 min (cold start ≈ 30-60 s; sockets reconnect), uploaded images vanish on redeploy, only one instance, no real SMS/Google/moderation providers.

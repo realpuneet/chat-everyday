@@ -16,6 +16,8 @@ Production-oriented, mobile-first **18+ anonymous random chat + anonymous group 
 
 ## Quick start
 
+**Local, simplest path** (everything dry-run, no accounts): `npm run setup && npm run db:up && npm run dev` → http://localhost:5173. **Basic Vercel + Render demo deploy:** `docs/deploy-vercel-render.md`.
+
 ### Docker (everything: web, api, worker, Mongo replica set, Redis `noeviction`, coturn)
 
 ```bash

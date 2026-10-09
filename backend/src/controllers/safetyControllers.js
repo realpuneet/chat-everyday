@@ -29,7 +29,7 @@ export const ageController = (svc) => ({
   start: async (req, res) => res.json(await svc.ageVerifier.start(String(req.user._id))),
   // Dry-run completion: lets developers exercise the strict-verification path. Impossible in production.
   completeDryRun: async (req, res) => {
-    if (!svc.ageVerifier.dryRun || svc.cfg.isProd) throw forbidden('Not available');
+    if (!svc.ageVerifier.dryRun || !svc.cfg.demo) throw forbidden('Not available');
     await User.updateOne({ _id: req.user._id }, { $set: { ageLevel: 'strict' } });
     res.json({ ageLevel: 'strict' });
   },
