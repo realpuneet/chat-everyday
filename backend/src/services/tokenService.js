@@ -99,9 +99,9 @@ export class TokenService {
   }
 
   /** Time-limited TURN credentials compatible with coturn `use-auth-secret`. */
-  turnCredentials(userId) {
-    const username = `${Math.floor(Date.now() / 1000) + config.TURN_TTL_SEC}:${userId}`;
-    const credential = crypto.createHmac('sha1', config.TURN_SECRET).update(username).digest('base64');
+  turnCredentials(userId, { secret = config.TURN_SECRET, ttlSec = config.TURN_TTL_SEC } = {}) {
+    const username = `${Math.floor(Date.now() / 1000) + ttlSec}:${userId}`;
+    const credential = crypto.createHmac('sha1', secret).update(username).digest('base64');
     return { username, credential };
   }
 }

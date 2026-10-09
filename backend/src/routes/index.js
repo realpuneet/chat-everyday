@@ -18,6 +18,7 @@ export function buildRoutes(svc, mw, { json, express }) {
   r.use(json);
   r.use('/auth', authRoutes(svc, mw));
   r.use('/rooms', roomRoutes(svc, mw));
+  r.get('/rtc/ice', mw.requireAuth, asyncH(async (req, res) => res.json(svc.rtc.iceServers(String(req.user._id)))));
   r.use('/images', imageRoutes(svc, mw));
   r.use('/admin', adminRoutes(svc, mw));
 
