@@ -395,6 +395,11 @@ export class RoomService {
     return this.redis.hget(K.roomMembers(roomId), memberId);
   }
 
+  async isCustom(roomId) {
+    const r = await Room.findById(roomId).select('type system').lean();
+    return !!r && r.type === 'custom' && !r.system;
+  }
+
   async isMember(roomId, userId) {
     return (await this.redis.sismember(K.roomMemberOf(roomId), userId)) === 1;
   }

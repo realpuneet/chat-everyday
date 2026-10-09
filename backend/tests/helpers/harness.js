@@ -34,14 +34,18 @@ export async function boot({ sweeper = false, settings } = {}) {
   return h;
 }
 
-export async function guest(h, { nickname, gender, deviceId } = {}) {
+export const randomIp = () => `10.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}.${1 + Math.floor(Math.random() * 250)}`;
+
+export async function guest(h, { nickname, gender, deviceId, ip } = {}) {
   const dev = deviceId || `dev_${Math.random().toString(36).slice(2, 12)}`;
+  const clientIp = ip || randomIp();
   const res = await h.agent
     .post('/api/auth/guest')
     .set('x-device-id', dev)
+    .set('x-forwarded-for', clientIp)
     .send({ dob: DOB, ageConfirmed: true, ...(nickname ? { nickname } : {}), ...(gender ? { gender } : {}) });
   expect(res.status, JSON.stringify(res.body)).toBe(200);
-  return { token: res.body.accessToken, user: res.body.user, deviceId: dev };
+  return { token: res.body.accessToken, user: res.body.user, deviceId: dev, ip: clientIp };
 }
 
 export function connect(h, who, { deviceId } = {}) {
@@ -49,6 +53,7 @@ export function connect(h, who, { deviceId } = {}) {
     const s = ioc(h.url, {
       transports: ['websocket'],
       auth: { token: who.token, deviceId: deviceId || who.deviceId },
+      extraHeaders: who.ip ? { 'x-forwarded-for': who.ip } : {},
       reconnection: false,
       forceNew: true,
     });

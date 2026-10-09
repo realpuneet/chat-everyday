@@ -34,7 +34,15 @@ Updated at the end of every phase. See README "Verification status" for what was
 - [x] Adult flag with age-level gating + optional strict-verification hook (settings); room filters (links/PII/bad-words)
 - [x] Fanout batching, slow-mode, reconnect resume, offline grace before leaving rooms
 - Known gaps: room-level permanent bans (only 10-min kick lockout + admin global bans); per-recipient server-side mute (clients hide blocked memberIds).
-## P4 – safety + admin  ⏳
+## P4 – safety + admin  ✅
+- [x] Report (random + room) with Redis ring-buffer evidence -> admin queue (critical first); duplicate collapse; per-hour limit; reporter auto-blocks reported
+- [x] Bans at account + device + IP + linked identity level, temp/permanent, escalation ladder 24h -> 7d -> permanent, CSAM/minor always permanent; ban lifts together; IP bans capped at 7d (CGNAT collateral)
+- [x] Hard content policy enforced in code: minor signals -> immediate session end + permanent ban + critical report; sextortion/threat/trafficking/doxxing ladder; settings schema cannot touch them
+- [x] Auto-hide after N reports (images/custom rooms), reviewable 1h auto-suspend on N distinct reporters
+- [x] Admin API: stats, reports, bans, users, settings editor (validated + audited), audit log, takedown queue (statutory due dates), room hide, TOTP 2FA hook
+- [x] Opt-in saved chats: both consent, registered only, AES-256-GCM per-message with HKDF per-doc key, per-user copies, delete, retention TTL + sweeper purge
+- [x] Strict age-verification provider hook (dry-run default)
+- Known gaps: ban-evasion risk score has no real VPN provider (hook only); report -> image evidence wiring completes in P5.
 ## P5 – images  ⏳
 ## P6 – video + PWA polish  ⏳
 ## P7 – docs + CI + zip  ⏳

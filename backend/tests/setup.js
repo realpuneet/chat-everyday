@@ -6,3 +6,4 @@ process.env.LOG_LEVEL = 'silent';
 process.env.DISABLE_SWEEPER = 'true';
 process.env.LOCAL_STORAGE_DIR = process.env.LOCAL_STORAGE_DIR || './.data/test-uploads';
 process.env.RATE_LIMIT_MULTIPLIER = '1000';
+process.env.TRUST_PROXY = '1'; // tests simulate distinct client IPs with X-Forwarded-For

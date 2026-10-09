@@ -10,6 +10,10 @@ import { EventStore } from './eventStore.js';
 import { ModerationService } from './moderationService.js';
 import { ChatService } from './chatService.js';
 import { RoomService, RoomFanout } from './roomService.js';
+import { ReportService } from './reportService.js';
+import { SavedChatService } from './savedChatService.js';
+import { AdminService } from './adminService.js';
+import { createAgeVerifier } from '../integrations/ageVerify/index.js';
 import { RateLimiter } from '../utils/rateLimit.js';
 import { createLazyEmitter } from '../sockets/emitter.js';
 import { createIpRiskProvider } from '../integrations/risk/index.js';
@@ -42,7 +46,15 @@ export function createServices({ redis, cfg = config }) {
   const fanout = new RoomFanout({ emit, settings });
   const rooms = new RoomService({ redis, settings, events, limiter, moderation, emit, audit, fanout });
 
-  const svc = { rooms, fanout, redis, cfg, emit, settings, audit, limiter, tokens, bans, risk, otp, matching, presence, events, moderation, auth, chat };
+  const reports = new ReportService({ redis, settings, limiter, matching, events, rooms, moderation, audit, emit, chat });
+  moderation.reports = reports;
+  const saved = new SavedChatService({ redis, settings, matching, emit, audit });
+  chat.hooks.onMessage = (chatId, from, partner, ev) => saved.onMessage(chatId, from, partner, ev);
+  chat.hooks.onChatEnded = (chatId) => saved.onChatEnded(chatId);
+  const admin = new AdminService({ redis, settings, audit, matching, presence, bans, rooms, images: null, emit });
+  const ageVerifier = createAgeVerifier(cfg);
+
+  const svc = { reports, saved, admin, ageVerifier, rooms, fanout, redis, cfg, emit, settings, audit, limiter, tokens, bans, risk, otp, matching, presence, events, moderation, auth, chat };
 
   // Ban => leave random chat and every room.
   moderation.on('user:banned', ({ userId }) => {
@@ -54,6 +66,9 @@ export function createServices({ redis, cfg = config }) {
     await rooms.ensureSystemRooms();
   };
   svc.stop = async () => fanout.flushAll();
-  svc.sweeperTasks = [{ name: 'room-disconnects', ms: 2000, fn: () => rooms.processDisconnects(presence) }];
+  svc.sweeperTasks = [
+    { name: 'room-disconnects', ms: 2000, fn: () => rooms.processDisconnects(presence) },
+    { name: 'saved-purge', ms: 10 * 60_000, lock: true, fn: () => saved.purgeExpired() },
+  ];
   return svc;
 }

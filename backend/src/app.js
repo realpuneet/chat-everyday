@@ -8,6 +8,7 @@ import { logger } from './config/logger.js';
 import { requestId, clientInfo, errorHandler, notFoundHandler } from './middlewares/common.js';
 import { makeAuth } from './middlewares/auth.js';
 import { buildRoutes } from './routes/index.js';
+import { ipLimit } from './middlewares/ipLimit.js';
 
 /** Build the Express app. `health` exposes readiness state so /readyz can reflect shutdown. */
 export function createApp(svc, { health = { ready: true, shuttingDown: false }, mongoose } = {}) {
@@ -61,6 +62,7 @@ export function createApp(svc, { health = { ready: true, shuttingDown: false }, 
   app.use(clientInfo);
   const mw = makeAuth({ tokens: svc.tokens, authService: svc.auth, bans: svc.bans });
   // Routes that need raw bodies (image upload) are mounted before the JSON parser inside buildRoutes.
+  app.use('/api', ipLimit(svc.limiter, 'api', { limit: 900, windowMs: 60_000 }));
   app.use('/api', buildRoutes(svc, mw, { json: express.json({ limit: '32kb' }), express }));
 
   app.use(notFoundHandler);
